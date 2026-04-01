@@ -7,11 +7,16 @@ function autoSizeBox(box: NodeDef, opts: Required<LayoutOptions>): void {
   const longestLine = lines.reduce((max, l) => Math.max(max, l.length), 0);
   const titleLen = box.title ? box.title.length : 0;
 
+  const textPad = opts.compact ? 4 : 4;
+  const titlePad = opts.compact ? 4 : 6;
+  const minW = opts.compact ? 0 : opts.minBoxWidth;
+  const minH = lines.length + 2;
+
   if (box.width == null) {
-    box.width = Math.max(longestLine + 4, titleLen + 6, opts.minBoxWidth);
+    box.width = Math.max(longestLine + textPad, titleLen + titlePad, minW);
   }
   if (box.height == null) {
-    box.height = Math.max(lines.length + 2, opts.minBoxHeight);
+    box.height = Math.max(lines.length + 2, minH);
   }
 }
 
@@ -29,7 +34,7 @@ function equalizeWidths(children: NodeDef[]): void {
   }
 }
 
-function computeLayerGaps(layers: NodeDef[][], connections: ConnectionDef[], defaultGap: number): number[] {
+function computeLayerGaps(layers: NodeDef[][], connections: ConnectionDef[], defaultGap: number, compact = false): number[] {
   const gaps: number[] = [];
   const idToLayer = new Map<string, number>();
   for (let i = 0; i < layers.length; i++) {
@@ -54,7 +59,8 @@ function computeLayerGaps(layers: NodeDef[][], connections: ConnectionDef[], def
   }
   for (let i = 0; i < layers.length; i++) {
     const maxLabel = pairMax.get(i) || 0;
-    gaps.push(Math.max(defaultGap, maxLabel + 6));
+    const labelPad = compact ? 4 : 6;
+    gaps.push(Math.max(defaultGap, maxLabel + labelPad));
   }
   return gaps;
 }
@@ -134,7 +140,7 @@ function layoutVertical(children: NodeDef[], intraConns: ConnectionDef[], opts: 
 function layoutHorizontal(children: NodeDef[], intraConns: ConnectionDef[], opts: Required<LayoutOptions>): void {
   // If no connections, place each child in its own column (true horizontal layout)
   if (intraConns.length === 0) {
-    const childHGap = 5;
+    const childHGap = opts.compact ? 2 : 5;
     let curX = opts.padLeft;
     const maxH = Math.max(...children.map(c => c.height ?? 0));
     for (const child of children) {
@@ -185,9 +191,9 @@ function layoutHorizontal(children: NodeDef[], intraConns: ConnectionDef[], opts
     layers[l].push(c);
   }
 
-  const childHGap = 5;
-  const childVGap = 2;
-  const layerGaps = computeLayerGaps(layers, intraConns, childHGap);
+  const childHGap = opts.compact ? 2 : 5;
+  const childVGap = opts.compact ? 1 : 2;
+  const layerGaps = computeLayerGaps(layers, intraConns, childHGap, opts.compact);
 
   let curX = opts.padLeft;
   for (let i = 0; i < layers.length; i++) {
@@ -448,11 +454,12 @@ export function autoLayout(diagram: NodeDef, options?: LayoutOptions): NodeDef {
     return { from: fromTop!, to: toTop!, label: conn.label, fromSide: conn.fromSide, toSide: conn.toSide };
   }).filter(c => c.from && c.to && c.from !== c.to);
 
-  const layerGaps = computeLayerGaps(layers, topConns, opts.defaultHGap);
+  const topHGap = opts.compact ? 1 : opts.defaultHGap;
+  const layerGaps = computeLayerGaps(layers, topConns, topHGap, opts.compact);
 
   for (let i = 0; i < layers.length; i++) {
     const group = layers[i];
-    const gap = layerGaps[i] || opts.defaultHGap;
+    const gap = layerGaps[i] || topHGap;
     if (!group) { curX += gap; continue; }
     let curY = 1; // leave room for labels at top
     let maxW = 0;

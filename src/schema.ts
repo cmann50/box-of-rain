@@ -97,6 +97,8 @@ export interface LayoutOptions {
   padTop?: number;
   minBoxWidth?: number;
   minBoxHeight?: number;
+  maxWidth?: number;
+  compact?: boolean;
 }
 
 /** Get the text content lines from a node's children (if children is text) */

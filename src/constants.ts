@@ -38,4 +38,6 @@ export const DEFAULT_LAYOUT_OPTIONS: Required<LayoutOptions> = {
   padTop: 1,
   minBoxWidth: 12,
   minBoxHeight: 5,
+  maxWidth: 0,
+  compact: false,
 };

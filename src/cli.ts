@@ -138,6 +138,9 @@ function main(): void {
   const svg = args.includes('--svg');
   const mermaidFlag = args.includes('--mermaid');
   const yamlFlag = args.includes('--yaml');
+  const compactFlag = args.includes('--compact');
+  const maxWidthArg = args.find(a => a.startsWith('--max-width='));
+  const maxWidth = maxWidthArg ? parseInt(maxWidthArg.split('=')[1], 10) : 0;
   const fileArgs = args.filter(a => !a.startsWith('--'));
 
   let raw: string;
@@ -167,7 +170,11 @@ function main(): void {
         : JSON.parse(raw);
       diagram = migrate(parsed as Record<string, unknown>);
     }
-    const text = render(diagram);
+    const layoutOpts = {
+      ...(compactFlag ? { compact: true } : {}),
+      ...(maxWidth > 0 ? { maxWidth } : {}),
+    };
+    const text = render(diagram, Object.keys(layoutOpts).length > 0 ? layoutOpts : undefined);
     console.log(svg ? renderSvg(text) : text);
   } catch (err) {
     console.error(`Error: ${(err as Error).message}`);
