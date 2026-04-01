@@ -270,9 +270,24 @@ export function autoLayout(diagram: NodeDef, options?: LayoutOptions): NodeDef {
   // Respect root childDirection — use simple layout instead of DAG algorithm
   if (cloned.childDirection) {
     const childIds = new Set(clonedChildren.map(c => c.id).filter(Boolean) as string[]);
-    const intraConns = clonedConns.filter(
-      c => childIds.has(c.from) && childIds.has(c.to)
-    );
+    // Build child-to-parent map so cross-group connections (groupA.child → groupB.child)
+    // are promoted to group-level edges for ordering
+    const c2p = new Map<string, string>();
+    for (const box of clonedChildren) {
+      const grandchildren = getChildBoxes(box);
+      if (grandchildren && box.id) {
+        for (const gc of grandchildren) {
+          if (gc.id) c2p.set(gc.id, box.id);
+        }
+      }
+    }
+    const intraConns = clonedConns
+      .map(c => ({
+        ...c,
+        from: childIds.has(c.from) ? c.from : (c2p.get(c.from) ?? c.from),
+        to: childIds.has(c.to) ? c.to : (c2p.get(c.to) ?? c.to),
+      }))
+      .filter(c => childIds.has(c.from) && childIds.has(c.to) && c.from !== c.to);
     if (cloned.childDirection === 'vertical') {
       layoutVertical(clonedChildren, intraConns, opts);
     } else {
