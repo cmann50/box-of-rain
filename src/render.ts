@@ -8,7 +8,17 @@ import { autoLayout } from './layout.js';
 
 export function render(input: NodeDef, options?: LayoutOptions): string {
   const parsed = DiagramSchema.parse(input);
-  const diagram = autoLayout(parsed, options);
+
+  // If root has border/title, wrap it: the root becomes a single child
+  // so the layout engine treats it as a drawable box, not a transparent container.
+  let toLayout: NodeDef;
+  if (parsed.border || parsed.title) {
+    toLayout = { children: [parsed] };
+  } else {
+    toLayout = parsed;
+  }
+
+  const diagram = autoLayout(toLayout, options);
   const { width = 80, height = 20 } = diagram;
   const canvas = new Canvas(width, height);
 

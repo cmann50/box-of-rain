@@ -132,6 +132,20 @@ function layoutVertical(children: NodeDef[], intraConns: ConnectionDef[], opts: 
 }
 
 function layoutHorizontal(children: NodeDef[], intraConns: ConnectionDef[], opts: Required<LayoutOptions>): void {
+  // If no connections, place each child in its own column (true horizontal layout)
+  if (intraConns.length === 0) {
+    const childHGap = 5;
+    let curX = opts.padLeft;
+    const maxH = Math.max(...children.map(c => c.height ?? 0));
+    for (const child of children) {
+      if (child.x == null) child.x = curX;
+      if (child.y == null) child.y = opts.padTop + Math.floor((maxH - (child.height ?? 0)) / 2);
+      const shadowW = child.shadow ? 2 : 0;
+      curX += (child.width ?? 0) + shadowW + childHGap;
+    }
+    return;
+  }
+
   // Assign layers using longest-path
   const adj = new Map<string, string[]>();
   const inDeg = new Map<string, number>();
@@ -249,6 +263,21 @@ export function autoLayout(diagram: NodeDef, options?: LayoutOptions): NodeDef {
 
   // If all boxes already have x/y, just auto-size canvas
   if (clonedChildren.every(b => b.x != null && b.y != null)) {
+    autoSizeCanvas(cloned);
+    return cloned;
+  }
+
+  // Respect root childDirection — use simple layout instead of DAG algorithm
+  if (cloned.childDirection) {
+    const childIds = new Set(clonedChildren.map(c => c.id).filter(Boolean) as string[]);
+    const intraConns = clonedConns.filter(
+      c => childIds.has(c.from) && childIds.has(c.to)
+    );
+    if (cloned.childDirection === 'vertical') {
+      layoutVertical(clonedChildren, intraConns, opts);
+    } else {
+      layoutHorizontal(clonedChildren, intraConns, opts);
+    }
     autoSizeCanvas(cloned);
     return cloned;
   }

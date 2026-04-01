@@ -16,7 +16,9 @@ export function resolveBox(id: string, boxes: NodeDef[], parentAbsX = 0, parentA
     }
     const childBoxes = getChildBoxes(box);
     if (childBoxes) {
-      const found = resolveBox(id, childBoxes, parentAbsX + (box.x ?? 0) + 1, parentAbsY + (box.y ?? 0) + 1);
+      // Only add +1 border offset when the parent actually has a border
+      const borderOffset = box.border ? 1 : 0;
+      const found = resolveBox(id, childBoxes, parentAbsX + (box.x ?? 0) + borderOffset, parentAbsY + (box.y ?? 0) + borderOffset);
       if (found) return found;
     }
   }
